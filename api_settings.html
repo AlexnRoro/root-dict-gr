@@ -1,0 +1,229 @@
+<!-- API设置界面 -->
+<div id="apiSettings" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeApiSettings()">&times;</span>
+        <h2>🤖 AI增强设置</h2>
+        
+        <div class="api-section">
+            <h3>Groq API 配置</h3>
+            <p>使用AI进行更准确的词根分析</p>
+            
+            <div class="input-group">
+                <label for="groqApiKey">API密钥:</label>
+                <input type="password" id="groqApiKey" placeholder="输入你的Groq API密钥">
+                <button onclick="testApiKey()">测试</button>
+            </div>
+            
+            <div class="api-status" id="apiStatus"></div>
+            
+            <div class="api-info">
+                <h4>如何获取免费API密钥：</h4>
+                <ol>
+                    <li>访问 <a href="https://console.groq.com" target="_blank">console.groq.com</a></li>
+                    <li>注册账号并登录</li>
+                    <li>在API Keys页面创建新密钥</li>
+                    <li>复制密钥并粘贴到上方输入框</li>
+                </ol>
+                <p><strong>免费额度：</strong>每天可分析数千个单词</p>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button onclick="saveApiSettings()" class="primary">保存设置</button>
+            <button onclick="closeApiSettings()">取消</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: black;
+}
+
+.input-group {
+    margin: 15px 0;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.input-group input {
+    width: 70%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.input-group button {
+    margin-left: 10px;
+    padding: 8px 15px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.api-status {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 4px;
+    display: none;
+}
+
+.api-status.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.api-status.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.api-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 15px 0;
+}
+
+.api-info h4 {
+    margin-top: 0;
+}
+
+.api-info ol {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.api-info a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.button-group {
+    text-align: right;
+    margin-top: 20px;
+}
+
+.button-group button {
+    margin-left: 10px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.button-group .primary {
+    background: #28a745;
+    color: white;
+}
+
+.button-group button:not(.primary) {
+    background: #6c757d;
+    color: white;
+}
+</style>
+
+<script>
+function openApiSettings() {
+    document.getElementById('apiSettings').style.display = 'block';
+    
+    // 加载已保存的API密钥
+    const savedKey = localStorage.getItem('groq_api_key');
+    if (savedKey) {
+        document.getElementById('groqApiKey').value = savedKey;
+    }
+}
+
+function closeApiSettings() {
+    document.getElementById('apiSettings').style.display = 'none';
+}
+
+async function testApiKey() {
+    const apiKey = document.getElementById('groqApiKey').value.trim();
+    const statusDiv = document.getElementById('apiStatus');
+    
+    if (!apiKey) {
+        showApiStatus('请输入API密钥', 'error');
+        return;
+    }
+    
+    showApiStatus('测试中...', 'info');
+    
+    try {
+        const isValid = await AIRootAnalyzer.testApiKey(apiKey);
+        if (isValid) {
+            showApiStatus('✅ API密钥有效！', 'success');
+        } else {
+            showApiStatus('❌ API密钥无效或网络错误', 'error');
+        }
+    } catch (error) {
+        showApiStatus('❌ 测试失败: ' + error.message, 'error');
+    }
+}
+
+function showApiStatus(message, type) {
+    const statusDiv = document.getElementById('apiStatus');
+    statusDiv.textContent = message;
+    statusDiv.className = `api-status ${type}`;
+    statusDiv.style.display = 'block';
+}
+
+function saveApiSettings() {
+    const apiKey = document.getElementById('groqApiKey').value.trim();
+    
+    if (apiKey) {
+        AIRootAnalyzer.setApiKey(apiKey);
+        showApiStatus('✅ 设置已保存', 'success');
+        setTimeout(() => {
+            closeApiSettings();
+        }, 1000);
+    } else {
+        showApiStatus('请输入API密钥', 'error');
+    }
+}
+
+// 点击模态框外部关闭
+window.onclick = function(event) {
+    const modal = document.getElementById('apiSettings');
+    if (event.target === modal) {
+        closeApiSettings();
+    }
+}
+</script>

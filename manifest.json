@@ -1,0 +1,16 @@
+{
+  "name": "词根字典",
+  "short_name": "词根字典",
+  "description": "英语词根查询工具",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007aff",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
