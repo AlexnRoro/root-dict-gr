@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="词根字典">
+    <title>词根字典</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- 顶部导航 -->
+        <nav class="nav">
+            <button class="nav-btn active" data-tab="search">查词</button>
+            <button class="nav-btn" data-tab="favorites">收藏夹</button>
+        </nav>
+
+        <!-- 查词页面 -->
+        <div class="tab-content active" id="search">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="输入单词查询">
+                <button id="searchBtn">查询</button>
+                <button id="aiSettingsBtn" onclick="openApiSettings()" title="AI设置">🤖</button>
+            </div>
+            <div id="result" class="result empty">输入单词开始查询</div>
+        </div>
+
+        <!-- 收藏夹页面 -->
+        <div class="tab-content" id="favorites">
+            <div class="version-info">
+                <span class="version-badge">v2.3</span>
+                <span class="feature-badge">多源查询</span>
+            </div>
+            <div class="backup-buttons">
+                <button id="exportBtn" onclick="exportFavorites()">导出收藏</button>
+                <button id="importBtn" onclick="document.getElementById('importFile').click()">导入收藏</button>
+                <input type="file" id="importFile" accept=".json" style="display:none" onchange="importFavorites(event)">
+            </div>
+            <div id="favoritesList" class="favorites-list"></div>
+        </div>
+
+    </div>
+
+    <script src="ai_root_analyzer.js"></script>
+    <script src="enhanced_root_analyzer_slim.js"></script>
+    <script src="comprehensive_roots.js"></script>
+    <script src="app.js"></script>
+    
+    <!-- AI设置界面 -->
+    <div id="apiSettings" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeApiSettings()">&times;</span>
+            <h2 style="text-align: center; margin-bottom: 30px; color: #333;">AI 增强设置</h2>
+            
+            <div class="input-group" style="margin-bottom: 20px;">
+                <label for="groqApiKey" style="display: block; margin-bottom: 8px; font-weight: 500; color: #555;">API 密钥</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="password" id="groqApiKey" placeholder="输入 Groq API 密钥" style="flex: 1; padding: 12px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 14px; transition: border-color 0.3s;">
+                    <button onclick="testApiKey()" style="padding: 12px 20px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: background 0.3s;">测试</button>
+                </div>
+            </div>
+            
+            <div class="api-status" id="apiStatus" style="display: none; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 14px;"></div>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 12px 0; color: #333; font-size: 16px;">获取免费 API 密钥</h4>
+                <ol style="margin: 0; padding-left: 20px; color: #666; line-height: 1.6;">
+                    <li>访问 <a href="https://console.groq.com" target="_blank" style="color: #007bff; text-decoration: none;">console.groq.com</a></li>
+                    <li>注册账号并登录</li>
+                    <li>在 API Keys 页面创建新密钥</li>
+                    <li>复制密钥并粘贴到上方输入框</li>
+                </ol>
+                <p style="margin: 12px 0 0 0; color: #28a745; font-weight: 500;">✨ 每天可免费分析数千个单词</p>
+            </div>
+            
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button onclick="saveApiSettings()" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: transform 0.2s;">保存设置</button>
+                <button onclick="closeApiSettings()" style="padding: 12px 24px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: background 0.3s;">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    function openApiSettings() {
+        document.getElementById('apiSettings').style.display = 'block';
+        const savedKey = localStorage.getItem('groq_api_key');
+        if (savedKey) {
+            document.getElementById('groqApiKey').value = savedKey;
+        }
+    }
+    
+    function closeApiSettings() {
+        document.getElementById('apiSettings').style.display = 'none';
+    }
+    
+    async function testApiKey() {
+        const apiKey = document.getElementById('groqApiKey').value.trim();
+        const statusDiv = document.getElementById('apiStatus');
+        
+        if (!apiKey) {
+            showApiStatus('请输入API密钥', 'error');
+            return;
+        }
+        
+        showApiStatus('测试中...', 'info');
+        
+        try {
+            if (typeof AIRootAnalyzer !== 'undefined') {
+                const isValid = await AIRootAnalyzer.testApiKey(apiKey);
+                if (isValid) {
+                    showApiStatus('✅ API密钥有效！', 'success');
+                } else {
+                    showApiStatus('❌ API密钥无效或网络错误', 'error');
+                }
+            } else {
+                showApiStatus('❌ AI分析器未加载', 'error');
+            }
+        } catch (error) {
+            showApiStatus('❌ 测试失败: ' + error.message, 'error');
+        }
+    }
+    
+    function showApiStatus(message, type) {
+        const statusDiv = document.getElementById('apiStatus');
+        statusDiv.textContent = message;
+        statusDiv.className = `api-status ${type}`;
+        statusDiv.style.display = 'block';
+    }
+    
+    function saveApiSettings() {
+        const apiKey = document.getElementById('groqApiKey').value.trim();
+        
+        if (apiKey) {
+            if (typeof AIRootAnalyzer !== 'undefined') {
+                AIRootAnalyzer.setApiKey(apiKey);
+                showApiStatus('✅ 设置已保存', 'success');
+                setTimeout(() => {
+                    closeApiSettings();
+                }, 1000);
+            } else {
+                showApiStatus('❌ AI分析器未加载', 'error');
+            }
+        } else {
+            showApiStatus('请输入API密钥', 'error');
+        }
+    }
+    
+    // 点击模态框外部关闭
+    window.onclick = function(event) {
+        const modal = document.getElementById('apiSettings');
+        if (event.target === modal) {
+            closeApiSettings();
+        }
+    }
+    </script>
+</body>
+</html>
